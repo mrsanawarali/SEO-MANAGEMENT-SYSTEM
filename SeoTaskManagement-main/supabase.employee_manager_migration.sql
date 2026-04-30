@@ -9,41 +9,65 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles'
   ) THEN
-    RAISE EXCEPTION 'Migration aborted: table public.profiles not found. Run supabase.schema.sql before running this migration.';
+    RAISE NOTICE 'Table public.profiles not found. Profile-related changes will be skipped. Run supabase.schema.sql to apply the base schema if you want the full migration.';
+  END IF;
+END
+$$;
+-- Profile-related changes: run only when `public.profiles` exists.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    EXECUTE 'alter table public.profiles drop constraint if exists profiles_role_check';
+    EXECUTE 'alter table public.profiles add constraint profiles_role_check check (role in (''admin'', ''manager'', ''employee'', ''student''))';
+    EXECUTE 'update public.profiles set role = ''employee'' where role = ''student''';
+    EXECUTE 'alter table public.profiles drop constraint if exists profiles_status_check';
+    EXECUTE 'alter table public.profiles add constraint profiles_status_check check (status in (''pending'', ''approved'', ''rejected'', ''inactive''))';
+  ELSE
+    RAISE NOTICE 'Skipping profile updates: public.profiles not present';
   END IF;
 END
 $$;
 
-alter table public.profiles drop constraint if exists profiles_role_check;
-alter table public.profiles
-  add constraint profiles_role_check check (role in ('admin', 'manager', 'employee', 'student'));
+-- Tasks: add non-FK columns when `public.tasks` exists; add FK columns only if both `tasks` and `profiles` exist.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tasks') THEN
+    EXECUTE '
+      alter table public.tasks
+        add column if not exists payment_amount numeric default 0,
+        add column if not exists payment_status text default ''pending'',
+        add column if not exists week_start date,
+        add column if not exists week_end date,
+        add column if not exists progress_percent numeric default 0,
+        add column if not exists final_forwarded_to_admin boolean default false,
+        add column if not exists manager_remarks text,
+        add column if not exists manager_reviewed_at timestamp,
+        add column if not exists admin_remarks text,
+        add column if not exists admin_reviewed_at timestamp,
+        add column if not exists revision_notes text,
+        add column if not exists revision_due_at timestamp,
+        add column if not exists revision_requested_at timestamp,
+        add column if not exists manager_forward_summary text';
+  ELSE
+    RAISE NOTICE 'Skipping task column additions: public.tasks not present';
+  END IF;
+END
+$$;
 
-update public.profiles
-set role = 'employee'
-where role = 'student';
-
-alter table public.profiles drop constraint if exists profiles_status_check;
-alter table public.profiles
-  add constraint profiles_status_check check (status in ('pending', 'approved', 'rejected', 'inactive'));
-
-alter table public.tasks
-  add column if not exists assigned_by uuid references public.profiles(id) on delete set null,
-  add column if not exists manager_id uuid references public.profiles(id) on delete set null,
-  add column if not exists payment_amount numeric default 0,
-  add column if not exists payment_status text default 'pending',
-  add column if not exists week_start date,
-  add column if not exists week_end date,
-  add column if not exists progress_percent numeric default 0,
-  add column if not exists final_forwarded_to_admin boolean default false,
-  add column if not exists manager_remarks text,
-  add column if not exists manager_reviewed_at timestamp,
-  add column if not exists admin_remarks text,
-  add column if not exists admin_reviewed_at timestamp,
-  add column if not exists revision_notes text,
-  add column if not exists revision_due_at timestamp,
-  add column if not exists revision_requested_by uuid references public.profiles(id) on delete set null,
-  add column if not exists revision_requested_at timestamp,
-  add column if not exists manager_forward_summary text;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'tasks')
+     AND EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    EXECUTE '
+      alter table public.tasks
+        add column if not exists assigned_by uuid references public.profiles(id) on delete set null,
+        add column if not exists manager_id uuid references public.profiles(id) on delete set null,
+        add column if not exists revision_requested_by uuid references public.profiles(id) on delete set null';
+  ELSE
+    RAISE NOTICE 'Skipping task FK column additions: public.tasks or public.profiles not present';
+  END IF;
+END
+$$;
 
 alter table public.tasks drop constraint if exists tasks_payment_status_check;
 alter table public.tasks
