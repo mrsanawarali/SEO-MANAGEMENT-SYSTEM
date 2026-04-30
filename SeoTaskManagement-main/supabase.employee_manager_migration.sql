@@ -1,6 +1,19 @@
 -- Run this after the original schema. It upgrades Student terminology/workflow
 -- to Admin -> Manager -> Employee with weekly task progress and payments.
 
+-- Safety guard: abort early with a clear message if base schema hasn't been
+-- applied (prevents the confusing "relation \"public.profiles\" does not
+-- exist" runtime error). Run `supabase.schema.sql` first if you see this.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles'
+  ) THEN
+    RAISE EXCEPTION 'Migration aborted: table public.profiles not found. Run supabase.schema.sql before running this migration.';
+  END IF;
+END
+$$;
+
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles
   add constraint profiles_role_check check (role in ('admin', 'manager', 'employee', 'student'));
