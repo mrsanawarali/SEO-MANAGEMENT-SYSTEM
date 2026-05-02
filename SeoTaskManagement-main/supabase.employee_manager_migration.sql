@@ -175,9 +175,9 @@ $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-    EXECUTE 'CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = ''admin'' AND status = ''approved'') $$';
+    EXECUTE 'CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = public AS $func$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = ''admin'' AND status = ''approved'') $func$';
 
-    EXECUTE 'CREATE OR REPLACE FUNCTION public.is_manager() RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = ''manager'' AND status = ''approved'') $$';
+    EXECUTE 'CREATE OR REPLACE FUNCTION public.is_manager() RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = public AS $func$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = ''manager'' AND status = ''approved'') $func$';
   ELSE
     RAISE NOTICE 'Skipping function creation: public.profiles not present';
   END IF;
