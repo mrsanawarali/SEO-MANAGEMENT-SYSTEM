@@ -282,12 +282,16 @@ BEGIN
 END
 $$;
 
--- Storage bucket and policies
+-- Storage bucket and policies (only if profiles table exists, so is_admin() function is available)
 DO $$
 BEGIN
   EXECUTE 'insert into storage.buckets (id, name, public, file_size_limit) values (''payment-proofs'', ''payment-proofs'', true, 102400) on conflict (id) do update set file_size_limit = 102400, public = true';
-  EXECUTE 'drop policy if exists "payment proofs admin upload" on storage.objects';
-  EXECUTE 'create policy "payment proofs admin upload" on storage.objects for insert with check (bucket_id = ''payment-proofs'' and public.is_admin())';
+  
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+    EXECUTE 'drop policy if exists "payment proofs admin upload" on storage.objects';
+    EXECUTE 'create policy "payment proofs admin upload" on storage.objects for insert with check (bucket_id = ''payment-proofs'' and public.is_admin())';
+  END IF;
+  
   EXECUTE 'drop policy if exists "payment proofs public read" on storage.objects';
   EXECUTE 'create policy "payment proofs public read" on storage.objects for select using (bucket_id = ''payment-proofs'')';
 END
