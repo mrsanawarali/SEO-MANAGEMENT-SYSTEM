@@ -10,11 +10,11 @@ React + Tailwind + Supabase application converted from the Google Stitch UI expo
 npm install
 ```
 
-2. Create `.env` from `.env.example`:
+2. Create `.env` from `.env.example` (example values provided):
 
 ```bash
-VITE_SUPABASE_URL=https://ikwpbluhjrvloyejtiid.supabase.co
-VITE_SUPABASE_ANON_KEY=your-publishable-key
+VITE_SUPABASE_URL=https://bthaozezwrpobknbvzlj.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_UhHqn9fZwzDiNOGyV1T-wQ_NE5ljVTS
 ```
 
 3. Run `supabase.schema.sql` in the Supabase SQL editor.
@@ -45,4 +45,4 @@ npm run dev
 
 ## Deployment
 
-Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel project environment variables, then deploy with the default Vite settings.
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel project environment variables (or create a local `.env` from `.env.example`), then deploy with the default Vite settings.
