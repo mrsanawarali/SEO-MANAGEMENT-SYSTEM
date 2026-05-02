@@ -6,7 +6,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
-    minify: "terser"
+    // Use esbuild for minification to avoid requiring an extra terser dependency
+    // (Vercel environment may not have terser installed). esbuild is faster
+    // and the default for Vite.
+    minify: "esbuild"
   },
   server: {
     port: 5173,
